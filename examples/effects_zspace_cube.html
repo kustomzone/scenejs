@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>SceneJS Example</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+
+    <script src="libs/gl-matrix-min.js"></script>
+    <!-- Include this BEFORE SceneJS to avoid requireJS confusion -->
+    <script src="../api/latest/scenejs.js"></script>
+    <script src="js/zspace/zSpace.js"></script>
+    <script src="js/zspace/zSpaceEffect.js"></script>
+
+    <link href="css/styles.css" rel="stylesheet"/>
+
+</head>
+<body>
+
+<div id="infoDark">
+    <a href="http://scenejs.org">SceneJS</a> - zSpace integration example
+</div>
+
+<script>
+
+    //-----------------------------------------------------------------------------------------------------------------
+    // Rendering a scene with zSpace
+    //-----------------------------------------------------------------------------------------------------------------
+
+    // Point SceneJS to the bundled plugins
+    SceneJS.setConfigs({
+        pluginPath: "../api/latest/plugins"
+    });
+
+    // Create scene
+    var scene = SceneJS.createScene({
+
+        webgl2: true, // Need WebGL2 for zSpace
+
+        nodes: [
+
+            // Viewing transform
+            {
+                type: "lookAt",
+                id: "theLookat",
+                eye: {x: 0, y: 0, z: 10},
+                look: {x: 0, y: 0, z: 0},
+                up: {x: 0, y: 1, z: 0},
+
+                nodes: [
+
+                    // Projection transform
+                    {
+                        type: "camera",
+                        id: "theCamera",
+                        optics: {
+                            type: "frustumAngles",
+                            left: 20,
+                            down: 20,
+                            near: 0.1,
+                            right: 20,
+                            up: 20,
+                            far: 10000
+                        },
+
+                        nodes: [
+
+                            // Spin the cube
+                            {
+                                type: "rotate",
+                                id: "theRotate",
+                                x: 0, y: -1, z: 0, // Axis of rotation
+                                angle: 90.0,
+
+                                nodes: [
+
+                                    // Texture the cube
+                                    {
+                                        type: "texture",
+                                        src: "textures/superman.jpg",
+                                        applyTo: "color",  // Apply to material "color" property (default)
+
+                                        nodes: [
+
+                                            // Scale the cube
+                                            {
+                                                type: "scale",
+                                                x: 0.2, y: 0.2, z: 0.2,
+
+                                                nodes: [
+
+                                                    // Box primitive, implemented by plugin at
+                                                    // http://scenejs.org/api/latest/plugins/node/geometry/box.js
+                                                    {
+                                                        type: "geometry/box"
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    });
+
+    var lookat = scene.getNode("theLookat");
+    var camera = scene.getNode("theCamera");
+    var rotate = scene.getNode("theRotate");
+
+    // Shows a ray as an object within the scene
+    var rayHelper = new (function () {
+
+        var material = camera.addNode({
+            type: "material",
+            color: {r: 1, g: 0.3, b: 0.3}
+        });
+
+        var flags = material.addNode({
+            type: "flags",
+            flags: {
+                enabled: true,
+                picking: false
+            }
+        });
+
+        var style = flags.addNode({
+            type: "style",
+            lineWidth: 3
+        });
+
+        var geometry = style.addNode({
+            type: "geometry",
+            primitive: "lines",
+            positions: [0, 0, 0, 0, 0, 0],
+            indices: [0, 1]
+        });
+
+        this.setRay = function (origin, direction) {
+            geometry.setPositions({
+                positions: [
+                    // Origin
+                    origin[0],
+                    origin[1],
+                    origin[2],
+                    // Direction
+                    origin[0] + direction[0],
+                    origin[1] + direction[1],
+                    origin[2] + direction[2]
+                ]
+            });
+        };
+    })();
+
+    scene.on("tick", function () {
+        rotate.setAngle(rotate.getAngle() + 0.2);
+    });
+
+    var zspace = new SceneJS.ZSpaceEffect({
+        scene: scene,
+        lookat: lookat,
+        camera: camera,
+        farClip: 10000,
+        viewerScale: 10
+    });
+
+    scene.on("tick", function () {
+
+        var stylusWorldPos = zspace.getStylusWorldPos();
+        var stylusWorldDir = zspace.getStylusWorldDir();
+
+        console.log(stylusWorldPos);
+        console.log(stylusWorldDir);
+
+        rayHelper.setRay(stylusWorldPos, stylusWorldDir);
+    });
+
+</script>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>SceneJS Example</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+
+    <style>
+        body {
+            margin: 0;
+            -moz-user-select: -moz-none;
+            -khtml-user-select: none;
+            -webkit-user-select: none;
+        }
+    </style>
+
+    <script src="../api/latest/scenejs.min.js"></script>
+    <link href="css/styles.css" rel="stylesheet"/>
+
+<body>
+
+<div id="infoDark">
+    <a href="http://scenejs.org">SceneJS</a> - Alpha and reflection Fresnels
+</div>
+
+<script>
+
+    // Demonstrates how to use layer nodes to control the order in which geometry is rendered
+    //
+    // Layer nodes effectively put their sub-geometries into a proritized render bin, ordered
+    // with respect to other layers. The layer with the lowest priority value is rendered first.
+    // Geometry not defined within a layer is binned within an implicit layer of priority 0.
+    //
+    // Layer nodes are normally used to control the rendering order of transparent geometries,
+    // rendering them back-to-front to ensure that each object's pixels are not rejected by
+    // previous pixels in the Z-buffer and thus blend with the pixels of all other transparent
+    // objects.
+    //
+    // More info on transparency sorting here: http://www.opengl.org/wiki/Transparency_Sorting
+    //
+    // In the example below, we render three nested spherees, the innermost of which is opaque,
+    // with the outer two spherees transparent. We render the inner sphere first, then with
+    // transparency enabled, render the next two spherees, rendering the outermost sphere last.
+    //
+
+    // Point SceneJS to the bundled plugins
+    SceneJS.setConfigs({
+        pluginPath: "../api/latest/plugins"
+    });
+
+    // Create scene
+    SceneJS.createScene({
+        nodes: [
+
+            // Mouse-orbited camera, implemented by plugin at
+            // http://scenejs.org/api/latest/plugins/node/cameras/orbit.js
+            {
+                type: "cameras/orbit",
+                yaw: 30,
+                pitch: -30,
+                zoom: 10,
+                zoomSensitivity: 1.0,
+                spin: 0.2,
+
+                nodes: [
+
+                    // Cloudy sea skybox, implemented by plugin at http://scenejs.org/api/latest/plugins/node/skybox/cloudySea.js
+                    {
+                        type: "skybox/cloudySea",
+                        size: 5000 // Box half-size on each axis - default is 5000
+                    },
+
+                    // The london reflection cube map
+                    // http://scenejs.org/api/latest/plugins/node/reflect/london.js
+                    {
+                        type: "reflect/london",
+
+                        // 100% texture intensity
+                        intensity: 1.0,
+
+                        nodes: [
+
+                            // Make teapot transparent
+                            {
+                                type: "flags",
+                                flags: {
+                                    transparent: true,
+                                    backfaces: false
+                                },
+
+                                nodes: [
+
+                                    // Transparent material
+                                    {
+                                        type: "material",
+                                        color: {r: 0.4, g: 0.4, b: 0.9},
+                                        specularColor: {r: 0, g: 0, b: 0},
+                                        alpha: 1.0,
+
+                                        nodes: [
+
+                                            // Reflectivity fresnel
+                                            {
+                                                type: "fresnel",
+                                                applyTo: "reflect",
+                                                edgeBias: 0.0,
+                                                centerBias: 0.6,
+                                                power: 5.0,
+                                                edgeColor: {r: 1.0, g: 1.0, b: 1.0},
+                                                centerColor: {r: 0.0, g: 0.0, b: 0.0},
+
+                                                nodes: [
+
+                                                    // Alpha fresnel
+                                                    {
+                                                        type: "fresnel",
+                                                        applyTo: "alpha",
+                                                        edgeBias: 0.5,
+                                                        centerBias: 0.8,
+                                                        power: 1.0,
+                                                        edgeColor: {r: 1.0, g: 1.0, b: 1.0},
+                                                        centerColor: {r: 0.0, g: 0.0, b: 0.0},
+                                                        nodes: [
+
+                                                            // Teapot primitive, implemented by plugin at
+                                                            // http://scenejs.org/api/latest/plugins/node/geometry/teapot.js
+                                                            {
+                                                                type: "geometry/teapot"
+                                                            }
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    });
+
+</script>
+</body>
+</html>
